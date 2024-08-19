@@ -47,7 +47,7 @@ const userSchema = new Schema(
     },
   },
   {
-    timestamp: true,
+    timestamps: true,
   }
 );
 
@@ -83,9 +83,9 @@ userSchema.methods.generateRefreshToken = function (){
     {
       _id: this._id,
     },
-    process.env.REFERESH_TOKEN_SECRET,
+    process.env.REFRESH_TOKEN_SECRET,
     {
-      expiresIn: process.env.REFERESH_TOKEN_EXPIRY
+      expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     }
   )
 }
