@@ -4,6 +4,7 @@ import {User} from '../models/user.Models.js'
 import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from 'jsonwebtoken'
+import mongoose from 'mongoose'
 
 const generateAccessTokenAndRefreshToken = async(userId)=>
 {
@@ -126,7 +127,7 @@ const loginUser = asyncHandler( async (req,res) => {
 
     const options = {
         httpOnly: true,
-        secure: true
+       // secure: true
     }
 
     return res.status(200)
@@ -147,10 +148,13 @@ const logoutUser = asyncHandler(async(req,res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: {
+                refreshToken: 1 //this removes the field from document
             }
         },
+        {
+            new: true
+        }
     )
 
     const options = {
@@ -347,7 +351,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
-    const username = req.params
+    const {username} = req.params
 
     if(!username?.trim()){
         throw new ApiError(400, "Username is missing")
@@ -406,7 +410,7 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
         }
     ])
 
-    if (!channel.lenght) {
+    if (!channel.length) {
         throw new ApiError(404, "channel does not exists")
     }
 
