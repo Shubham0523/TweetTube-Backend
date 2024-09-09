@@ -1,4 +1,4 @@
-# YouTube Clone Backend
+# Advance-Video-Platform-Backend
 
 This project is a backend implementation of a YouTube-like application, developed as a learning exercise for advanced backend concepts.
 
