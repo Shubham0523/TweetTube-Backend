@@ -62,20 +62,20 @@ const addComment = asyncHandler(async (req, res) => {
     //return the comment    
 
     const {videoId} = req.params
-    const {comment} = req.body
+    const {content} = req.body
 
     if(!isValidObjectId(videoId)) {
         throw new ApiError(400,  "Video ID is required")
     }
 
-    if(!isValidObjectId(comment)) {
-        throw new ApiError(400, "Please enter valid comment")
+    if(!content) {
+        throw new ApiError(400, "Comment is empty")
     }
 
     const newComment = await Comment.create({
         video: new mongoose.Types.ObjectId(videoId),
         // user: new mongoose.Types.ObjectId(userId),
-        comment
+        content
     })
 
     if (!newComment) {
@@ -150,28 +150,16 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(400,  "Comment ID is required")
     }
 
-    const delComment = await Comment.deleteOne({
-        $and: [
-        {
-             _id: commentId,            
-            owner: req.user._id
-        }]
-    })
-
-    if(!delComment) {
-        throw new ApiError(404,  "Comment not found")
-    }
-
-    if(delComment.deletedCount === 0) {
-        throw new ApiError(500,  "You are not allowed to delete this comment")
-    }
+    const comment = await Comment.findByIdAndDelete(commentId);
+  
+    if (!comment) throw new ApiError(500, "Error while deleting comment");
 
     return res
-    .status(201)
+    .status(200)
     .json(
         new ApiResponse(
-            201,
-            delComment,
+            200,
+            { isDeleted: true },
             "Comment deleted successfully"
         )
     )

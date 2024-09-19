@@ -6,12 +6,17 @@ import {
     updateComment,
 } from "../controllers/comment.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
+import { checkUser } from '../middlewares/openRouteAuth.middleware.js';
 
 const router = Router();
 
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
+// http://localhost:3000/api/v1/comment/...
 
-router.route("/:videoId").get(getVideoComments).post(addComment);
-router.route("/c/:commentId").delete(deleteComment).patch(updateComment);
+router.route("/get/:videoId").get(checkUser, getVideoComments);
+router.route("/add/:videoId").post(verifyJWT, addComment);
+router
+  .route("/:commentId")
+  .patch(verifyJWT, updateComment)
+  .delete(verifyJWT, deleteComment);
 
 export default router

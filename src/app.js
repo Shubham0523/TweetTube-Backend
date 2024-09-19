@@ -35,8 +35,8 @@ app.use("/api/v1/dashboard", dashboardRouter)
 app.use("/api/v1/healthcheck", healthcheckRouter)
 app.use("/api/v1/like", likeRouter)
 app.use("/api/v1/playlist", playlistRouter)
-app.use("/api/v1/subs", subscriptionRouter)
-app.use("/api/v1/tweet", tweetRouter)
+app.use("/api/v1/subscription", subscriptionRouter)
+app.use("/api/v1/tweets", tweetRouter)
 //http:localhost:8000/api/v1/users/register
 
 export { app }

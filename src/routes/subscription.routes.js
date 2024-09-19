@@ -5,15 +5,17 @@ import {
     toggleSubscription,
 } from "../controllers/subscription.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
+import {checkUser} from '../middlewares/openRouteAuth.middleware.js';
 
 const router = Router();
-router.use(verifyJWT); // Apply verifyJWT middleware to all routes in this file
+
+// http://localhost:3000/api/v1/subscription/...
 
 router
-    .route("/c/:channelId")
-    .get(getSubscribedChannels)
-    .post(toggleSubscription);
+  .route("/:channelId")
+  .patch(verifyJWT, toggleSubscription)
+  .get(checkUser, getUserChannelSubscribers);
 
-router.route("/u/:subscriberId").get(getUserChannelSubscribers);
+router.route("/users/:subscriberId").get(checkUser, getSubscribedChannels);
 
-export default router
+export default router;
