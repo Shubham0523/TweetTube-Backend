@@ -5,7 +5,7 @@ const storage = multer.diskStorage({
       cb(null, './public/temp')
     },
     filename: function (req, file, cb) {
-      cb(null, file.originalname)   //to make naming convention better to avoid duplicacy
+      cb(null, Date.now() + file.originalname)   //to make naming convention better to avoid duplicacy
     }
   })
   

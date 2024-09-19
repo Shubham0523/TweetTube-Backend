@@ -109,18 +109,21 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
 
   if(!title || !description){
-    throw new ApiError(400, {}, "Title and Description are required")
+    throw new ApiError(400, "Title and Description are required")
   }
+  console.log(req.files)
 
-  const videoLocalPath = req?.file?.videoFile[0]?.path;
-  const thumbnailLocalPath = req?.file?.thumbnail[0]?.path;
+  const videoLocalPath = req.files.videoFile[0].path;
+  const thumbnailLocalPath = req.files.thumbnail[0].path;
+
+  // console.log(thumbnailLocalPath)
 
   if(!videoLocalPath){
-    throw new ApiError(400, {}, "Video file is required")
+    throw new ApiError(400, "Video file is required")
   }
 
   if(!thumbnailLocalPath){
-    throw new ApiError(400, {}, "Thumbnail file is required")
+    throw new ApiError(400, "Thumbnail file is required")
   }
 
   try {
@@ -128,7 +131,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     const thumbnail = await uploadOnCloudinary(thumbnailLocalPath)
   
     if(!video || !thumbnail){
-      throw new ApiError(500, {}, "Failed to upload video or thumbnail")
+      throw new ApiError(500, "Failed to upload video or thumbnail")
     }
   
     const videoDetails = await Video.create({
@@ -142,7 +145,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
     })
   
     if(!videoDetails){
-      throw new ApiError(500, {}, "Failed to publish video")
+      throw new ApiError(500, "Failed to publish video")
     }
   
     return res

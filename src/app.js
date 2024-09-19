@@ -29,7 +29,7 @@ import tweetRouter from './routes/tweet.routes.js'
 
 //routes declaration
 app.use("/api/v1/users", userRouter)
-app.use("/api/v1/video", videoRouter)
+app.use("/api/v1/videos", videoRouter)
 app.use("/api/v1/comment", commentRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
 app.use("/api/v1/healthcheck", healthcheckRouter)
