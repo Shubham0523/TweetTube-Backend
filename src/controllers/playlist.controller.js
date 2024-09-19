@@ -22,7 +22,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
     })
 
     if(!playlist){
-        throw new ApiError(500,{},"Failed to create playlist")
+        throw new ApiError(500,"Failed to create playlist")
     }
     return res
     .status(201)
@@ -42,7 +42,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 
     const playlists = await Playlist.find({owner:userId})
     if(!playlists){
-        throw new ApiError(404,{},"No playlists found")
+        throw new ApiError(404,"No playlists found")
     }
     return res
     .status(200)
@@ -198,7 +198,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
     return res
     .status(200)
     .json(
-        new ApiResponse(200,{},"Playlist deleted successfully")
+        new ApiResponse(200,"Playlist deleted successfully")
     )
 })
 

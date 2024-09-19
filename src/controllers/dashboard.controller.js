@@ -135,7 +135,7 @@ const getChannelVideos = asyncHandler(async (req, res) => {
     const userId = req.user?._id;
 
     if(!userId) {
-        throw new ApiError(404, {}, "User Not Found")
+        throw new ApiError(404,  "User Not Found")
     }
 
     const videos = await Video.find({owner:userId});

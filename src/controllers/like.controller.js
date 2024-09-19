@@ -16,7 +16,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     //return the like
 
     if(!isValidObjectId(videoId)) {
-        throw new ApiError(400, {}, "Invalid video ID")
+        throw new ApiError(400,  "Invalid video ID")
     }
 
     const userId = req.user._id
@@ -28,7 +28,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
         return res
         .status(200)
         .json(
-            new ApiResponse(200, {}, "Like removed")
+            new ApiResponse(200,  "Like removed")
         )
     }
 
@@ -53,7 +53,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     //return the like
 
     if(!isValidObjectId(commentId)) {
-        throw new ApiError(400, {}, "Invalid comment ID")
+        throw new ApiError(400,  "Invalid comment ID")
     }
 
     const userId = req.user._id
@@ -66,7 +66,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         .status(200)
         .json(
             200,
-            {},
+            
             "Like removed"
         )
     }
@@ -91,7 +91,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
     //return the like
 
     if(!isValidObjectId(tweetId)) {
-        throw new ApiError(400, {}, "Invalid tweet ID")
+        throw new ApiError(400,  "Invalid tweet ID")
     }
 
     const userId = req.user._id
@@ -104,7 +104,7 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         .status(200)
         .json(
             200,
-            {},
+            
             "Like removed"
         )
         
@@ -134,7 +134,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     const likedVideos = likes.map(like => like.video)
 
     if(likedVideos.length === 0) {
-        throw new ApiError(404, {}, "No liked videos found")
+        throw new ApiError(404,  "No liked videos found")
     }
 
     return res

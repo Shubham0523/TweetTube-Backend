@@ -1,7 +1,7 @@
 import {asyncHandler} from '../utils/asyncHandler.js'
 import {ApiError }from '../utils/ApiError.js'
 import {User} from '../models/user.model.js'
-import {uploadOnCloudinary, deleteFromCloudinary} from '../utils/cloudinary.js'
+import {uploadPhotoOnCloudinary as uploadOnCloudinary, deleteImageOnCloudinary} from '../utils/cloudinary.js'
 import { ApiResponse } from '../utils/ApiResponse.js'
 import jwt from 'jsonwebtoken'
 import mongoose from 'mongoose'
@@ -299,7 +299,7 @@ const updateUserAvatar = asyncHandler(async(req,res)=>{
     ).select("-password")
 
     if (oldAvatarPath) {
-        await deleteFromCloudinary(oldAvatarPath)
+        await deleteImageOnCloudinary(oldAvatarPath)
     }
 
     return res
@@ -340,7 +340,7 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
     ).select("-password")
 
     if(oldcoverImagePath){
-        await deleteFromCloudinary(oldcoverImagePath)
+        await deleteImageOnCloudinary(oldcoverImagePath)
     }
 
     return res

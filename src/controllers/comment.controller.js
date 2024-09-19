@@ -65,7 +65,7 @@ const addComment = asyncHandler(async (req, res) => {
     const {comment} = req.body
 
     if(!isValidObjectId(videoId)) {
-        throw new ApiError(400, {}, "Video ID is required")
+        throw new ApiError(400,  "Video ID is required")
     }
 
     if(!isValidObjectId(comment)) {
@@ -79,7 +79,7 @@ const addComment = asyncHandler(async (req, res) => {
     })
 
     if (!newComment) {
-        throw new ApiError(500, {}, "Comment not saved to db")
+        throw new ApiError(500,  "Comment not saved to db")
     }
 
     res.status(201).json(
@@ -103,11 +103,11 @@ const updateComment = asyncHandler(async (req, res) => {
     const {content} = req.body
 
     if(!isValidObjectId(commentId)) {
-        throw new ApiError(400, {}, "Comment ID is required")
+        throw new ApiError(400,  "Comment ID is required")
     }
     
     if(!content.length === 0) {
-        throw new ApiError(400, {}, "Comment cannot be empty")
+        throw new ApiError(400,  "Comment cannot be empty")
     }
 
     const comment = await Comment.findById({
@@ -119,7 +119,7 @@ const updateComment = asyncHandler(async (req, res) => {
     comment.content = content
 
     if(!comment) {
-        throw new ApiError(404, {}, "Comment not found")
+        throw new ApiError(404,  "Comment not found")
     }
 
     await comment.save()
@@ -147,7 +147,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     const {commentId} = req.params
 
     if(!isValidObjectId(commentId)) {
-        throw new ApiError(400, {}, "Comment ID is required")
+        throw new ApiError(400,  "Comment ID is required")
     }
 
     const delComment = await Comment.deleteOne({
@@ -159,11 +159,11 @@ const deleteComment = asyncHandler(async (req, res) => {
     })
 
     if(!delComment) {
-        throw new ApiError(404, {}, "Comment not found")
+        throw new ApiError(404,  "Comment not found")
     }
 
     if(delComment.deletedCount === 0) {
-        throw new ApiError(500, {}, "You are not allowed to delete this comment")
+        throw new ApiError(500,  "You are not allowed to delete this comment")
     }
 
     return res
