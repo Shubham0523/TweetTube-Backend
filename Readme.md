@@ -52,7 +52,8 @@ Writing all these controllers significantly enhanced my understanding of backend
 3. Set up environment variables
 4. Run the development server: `npm run dev`
 
-API Testing
+## API Testing
+
 You can test all the available API routes using Postman. I have created a Postman public workspace where you can easily import and test the routes without having to manually set up each endpoint.
 
 Postman Workspace: https://www.postman.com/research-engineer-54415261/youtube-clone-backend
