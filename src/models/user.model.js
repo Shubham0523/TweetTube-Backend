@@ -2,6 +2,27 @@ import mongoose, { Schema } from "mongoose";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
+const linkSchema = new Schema({
+  name: {
+    type: String,
+    require: true,
+  },
+  url: {
+    type: String,
+    require: true,
+  },
+});
+
+const watchHistorySchema = new Schema(
+  {
+    video: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Video",
+    },
+  },
+  { timestamps: true }
+);
+
 const userSchema = new Schema(
   {
     username: {
@@ -38,6 +59,11 @@ const userSchema = new Schema(
         ref: "Video",
       },
     ],
+    links: [linkSchema],
+    description: {
+      type: String,
+      default: "",
+    },
     password: {
       type: String,
       required: [true, "Password is required"],
