@@ -55,8 +55,7 @@ Writing all these controllers significantly enhanced my understanding of backend
 API Testing
 You can test all the available API routes using Postman. I have created a Postman public workspace where you can easily import and test the routes without having to manually set up each endpoint.
 
-Postman Public Workspace: https://www.postman.com/research-engineer-54415261/youtube-clone-backend
-Postman Workspace Link
+Postman Workspace: https://www.postman.com/research-engineer-54415261/youtube-clone-backend
 
 Simply click the link, and you'll be able to test the authentication, video upload, and other functionalities directly in Postman. Ensure that you set up the required environment variables in Postman for seamless testing.
 
