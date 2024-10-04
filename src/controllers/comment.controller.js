@@ -1,173 +1,285 @@
-import mongoose, {isValidObjectId} from "mongoose"
-import {Comment} from "../models/comment.model.js"
-import {ApiError} from "../utils/ApiError.js"
-import {ApiResponse} from "../utils/ApiResponse.js"
-import {asyncHandler} from "../utils/asyncHandler.js"
+import mongoose, { isValidObjectId } from "mongoose";
+import { Comment } from "../models/comment.model.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { Video } from "../models/video.model.js";
+import { Like } from "../models/like.model.js";
+
+// TODO: Review and Enhance all controllers
 
 const getVideoComments = asyncHandler(async (req, res) => {
-    //TODO: get all comments for a video
+  const { videoId } = req.params;
+  const { page = 1, limit = 10 } = req.query;
 
-    //get all videos from the unique video id
-    //select all comments from the video
-    //paginate the comments
-    //return the comments   
-    const {videoId} = req.params
-    const {page = 1, limit = 10} = req.query
+  if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid VideoId");
 
-    if (!isValidObjectId(videoId)) {
-        throw new ApiError(400, "Video ID is required")
-    }
+  const options = {
+    page,
+    limit,
+  };
 
-    let pipeline = [
-        {
+  const video = await Video.findById(videoId);
+
+  const allComments = await Comment.aggregate([
+    {
+      $match: {
+        video: new mongoose.Types.ObjectId(videoId),
+      },
+    },
+    // sort by date
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    // fetch likes of Comment
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "comment",
+        as: "likes",
+        pipeline: [
+          {
             $match: {
-                video: new mongoose.Types.ObjectId(videoId)
+              liked: true,
             },
+          },
+          {
+            $group: {
+              _id: "liked",
+              owners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "comment",
+        as: "dislikes",
+        pipeline: [
+          {
+            $match: {
+              liked: false,
+            },
+          },
+          {
+            $group: {
+              _id: "liked",
+              owners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    // Reshape Likes and dislikes
+    {
+      $addFields: {
+        likes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$likes" }, 0],
+            },
+            then: { $first: "$likes.owners" },
+            else: [],
+          },
+        },
+        dislikes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$dislikes" }, 0],
+            },
+            then: { $first: "$dislikes.owners" },
+            else: [],
+          },
+        },
+      },
+    },
+    // get owner details
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              fullName: 1,
+              username: 1,
+              avatar: 1,
+              _id: 1,
+            },
+          },
+        ],
+      },
+    },
+    { $unwind: "$owner" },
+    {
+      $project: {
+        content: 1,
+        owner: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        isOwner: {
+          $cond: {
+            if: { $eq: [req.user?._id, "$owner._id"] },
+            then: true,
+            else: false,
+          },
+        },
+        likesCount: {
+          $size: "$likes",
+        },
+        disLikesCount: {
+          $size: "$dislikes",
+        },
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$likes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        isDisLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$dislikes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        isLikedByVideoOwner: {
+          $cond: {
+            if: {
+              $in: [video.owner, "$likes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+  ]);
 
-        }
-    ]
+  return res
+    .status(200)
+    .json(new ApiResponse(200, allComments, "All comments Sent"));
 
-    const options = {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        customLabels: {
-            totalDocs: "totalComments",
-            docs: "comments"
-        }
-    }
+  // TODO: Send paginated comments
 
-    const allComments = await Comment.aggregatePaginate(pipeline,options)
+  Comment.aggregatePaginate(allComments, options, function (err, results) {
+    console.log("results", results);
+    if (!err) {
+      const {
+        docs,
+        totalDocs,
+        limit,
+        page,
+        totalPages,
+        pagingCounter,
+        hasPrevPage,
+        hasNextPage,
+        prevPage,
+        nextPage,
+      } = results;
 
-    if (!allComments.totalComments === 0) {
-        throw new ApiError(404, "Comments not found")
-    }
-
-    res.status(201).json(
-        new ApiResponse
-        (
-            200, 
-            "Comments fetched successfully", 
-            allComments
+      return res.status(200).json(
+        new ApiResponse(
+          200,
+          {
+            Comments: docs,
+            totalDocs,
+            limit,
+            page,
+            totalPages,
+            pagingCounter,
+            hasPrevPage,
+            hasNextPage,
+            prevPage,
+            nextPage,
+          },
+          "Comments fetched successfully"
         )
-    )
-})
+      );
+    } else throw new ApiError(500, err.message);
+  });
+});
 
 const addComment = asyncHandler(async (req, res) => {
-    // TODO: add a comment to a video
+  const { videoId } = req.params;
+  const { content } = req.body;
 
-    //select the video id from the request params
-    //select the comment text from the request body
-    //create a new comment object
-    //save the comment
-    //return the comment    
+  if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid VideoId");
+  if (!content) throw new ApiError(400, "No Comment Found");
 
-    const {videoId} = req.params
-    const {content} = req.body
+  const comment = await Comment.create({
+    content,
+    video: videoId,
+    owner: req.user?._id,
+  });
+  if (!comment) throw new ApiError(500, "Error while adding comment");
 
-    if(!isValidObjectId(videoId)) {
-        throw new ApiError(400,  "Video ID is required")
-    }
+  const { username, avatar, fullName, _id } = req.user;
 
-    if(!content) {
-        throw new ApiError(400, "Comment is empty")
-    }
+  const commentData = {
+    ...comment._doc,
+    owner: { username, avatar, fullName, _id },
+    likesCount: 0,
+    isOwner: true,
+  };
 
-    const newComment = await Comment.create({
-        video: new mongoose.Types.ObjectId(videoId),
-        // user: new mongoose.Types.ObjectId(userId),
-        content
-    })
-
-    if (!newComment) {
-        throw new ApiError(500,  "Comment not saved to db")
-    }
-
-    res.status(201).json(
-         new ApiResponse(
-            201,
-            "Comment added successfully",
-            newComment
-        )
-    )
-})
+  return res
+    .status(200)
+    .json(new ApiResponse(200, commentData, "Comment added successfully"));
+});
 
 const updateComment = asyncHandler(async (req, res) => {
-    // TODO: update a comment
-
-    //select the comment id from the request params
-    //select the comment text from the request body
-    //update the comment
-    //return the updated comment    
-
-    const {commentId} = req.params
-    const {content} = req.body
-
-    if(!isValidObjectId(commentId)) {
-        throw new ApiError(400,  "Comment ID is required")
+  const { commentId } = req.params;
+  const { content } = req.body;
+  if (!isValidObjectId(commentId)) throw new ApiError(400, "Invalid VideoId");
+  if (!content) throw new ApiError(400, "No Comment Found");
+  const newComment = await Comment.findByIdAndUpdate(
+    commentId,
+    {
+      $set: {
+        content,
+      },
+    },
+    {
+      new: true,
     }
-    
-    if(!content.length === 0) {
-        throw new ApiError(400,  "Comment cannot be empty")
-    }
-
-    const comment = await Comment.findById({
-        _id: commentId,
-        owner: req.user._id
-
-    })
-
-    comment.content = content
-
-    if(!comment) {
-        throw new ApiError(404,  "Comment not found")
-    }
-
-    await comment.save()
-
-    return res
-    .status(201)
-    .json(
-        new ApiResponse(
-            201,
-            comment,
-            "Comment updated successfully"
-        )
-    )
-
-
-})
+  );
+  if (!newComment) throw new ApiError(500, "Invalid Comment Id or Error while editing comment");
+  return res
+    .status(200)
+    .json(new ApiResponse(200, newComment, "Comment updated successfully"));
+});
 
 const deleteComment = asyncHandler(async (req, res) => {
-    // TODO: delete a comment
+  const { commentId } = req.params;
+  if (!isValidObjectId(commentId)) throw new ApiError(400, "Invalid VideoId");
 
-    //select the comment id from the request params
-    //delete the comment
-    //return the deleted comment    
-    
-    const {commentId} = req.params
+  const comment = await Comment.findByIdAndDelete(commentId);
 
-    if(!isValidObjectId(commentId)) {
-        throw new ApiError(400,  "Comment ID is required")
-    }
+  if (!comment) throw new ApiError(500, "Error while deleting comment");
 
-    const comment = await Comment.findByIdAndDelete(commentId);
-  
-    if (!comment) throw new ApiError(500, "Error while deleting comment");
+  const deleteLikes = await Like.deleteMany({
+    comment: new mongoose.Types.ObjectId(commentId),
+  });
 
-    return res
+  return res
     .status(200)
     .json(
-        new ApiResponse(
-            200,
-            { isDeleted: true },
-            "Comment deleted successfully"
-        )
-    )
-})
+      new ApiResponse(200, { isDeleted: true }, "Comment deleted successfully")
+    );
+});
 
-export {
-    getVideoComments, 
-    addComment, 
-    updateComment,
-     deleteComment
-    }
+export { getVideoComments, addComment, updateComment, deleteComment };

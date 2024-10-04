@@ -10,6 +10,8 @@ import {
   uploadPhotoOnCloudinary,
   uploadVideoOnCloudinary,
 } from "../utils/cloudinary.js";
+import { stopWords } from "../utils/helperData.js";
+
 
 export const getAllVideosByOption = asyncHandler(async (req, res) => {
   const {
@@ -353,118 +355,352 @@ const publishAVideo = asyncHandler(async (req, res) => {
   //     throw new ApiError(500, error.message || "Internal server error");
   //   }
 
-  const { title, description } = req.body;
+  // 2nd Iteration
+  // const { title, description } = req.body;
 
+  // if (!title) throw new ApiError(400, "Title is Required");
+
+  // // fetch local video file path
+  // let videoFileLocalFilePath = null;
+  // if (req.files && req.files.videoFile && req.files.videoFile.length > 0) {
+  //   videoFileLocalFilePath = req.files.videoFile[0].path;
+  // }
+  // if (!videoFileLocalFilePath)
+  //   throw new ApiError(400, "Video File Must be Required");
+
+  // // fetch local thumbnail file path
+  // let thumbnailLocalFilePath = null;
+  // if (req.files && req.files.thumbnail && req.files.thumbnail.length > 0) {
+  //   thumbnailLocalFilePath = req.files.thumbnail[0].path;
+  // }
+  // if (!thumbnailLocalFilePath)
+  //   throw new ApiError(400, "Thumbnail File Must be Required");
+
+  // // check if connection closed then abort operations else continue
+  // if (req.customConnectionClosed) {
+  //   console.log("Connection closed, aborting video and thumbnail upload...");
+  //   console.log("All resources Cleaned up & request closed...");
+  //   return; // Preventing further execution
+  // }
+
+  // const videoFile = await uploadVideoOnCloudinary(videoFileLocalFilePath);
+  // if (!videoFile) throw new ApiError(500, "Error while Uploading Video File");
+
+  // // check if connection closed then delete video and abort operations else continue
+  // if (req.customConnectionClosed) {
+  //   console.log(
+  //     "Connection closed!!! deleting video and aborting thumbnail upload..."
+  //   );
+  //   await deleteVideoOnCloudinary(videoFile.url);
+  //   fs.unlinkSync(thumbnailLocalFilePath);
+  //   console.log("All resources Cleaned up & request closed...");
+  //   return; // Preventing further execution
+  // }
+
+  // const thumbnailFile = await uploadPhotoOnCloudinary(thumbnailLocalFilePath);
+  // if (!thumbnailFile)
+  //   throw new ApiError(500, "Error while uploading thumbnail file");
+
+  // // check if connection closed then delete video & thumbnail and abort db operation else continue
+  // if (req.customConnectionClosed) {
+  //   console.log(
+  //     "Connection closed!!! deleting video & thumbnail and aborting db operation..."
+  //   );
+  //   await deleteVideoOnCloudinary(videoFile.url);
+  //   await deleteImageOnCloudinary(thumbnailFile.url);
+  //   console.log("All resources Cleaned up & request closed...");
+  //   return; // Preventing further execution
+  // }
+
+  // console.log("updating db...");
+
+  // const video = await Video.create({
+  //   videoFile: videoFile.hlsurl,
+  //   title,
+  //   description: description || "",
+  //   duration: videoFile.duration,
+  //   thumbnail: thumbnailFile.url,
+  //   owner: req.user?._id,
+  // });
+
+  // console.log("main video controler", video);
+
+  // if (!video) throw new ApiError(500, "Error while Publishing Video");
+
+  // // check if connection closed then delete video & thumbnail & dbEntry and abort response else continue
+  // if (req.customConnectionClosed) {
+  //   console.log(
+  //     "Connection closed!!! deleting video & thumbnail & dbEntry and aborting response..."
+  //   );
+  //   await deleteVideoOnCloudinary(videoFile.url);
+  //   await deleteImageOnCloudinary(thumbnailFile.url);
+  //   let video = await Video.findByIdAndDelete(video._id);
+  //   console.log("Deleted the Video from db: ", video);
+  //   console.log("All resources Cleaned up & request closed...");
+  //   return;
+  // }
+
+  // return res
+  //   .status(200)
+  //   .json(new ApiResponse(200, video, "Video published successfully"));
+
+
+// 3rd Iteration
+try {
+  const { title, description } = req.body;
   if (!title) throw new ApiError(400, "Title is Required");
 
-  // fetch local video file path
-  let videoFileLocalFilePath = null;
-  if (req.files && req.files.videoFile && req.files.videoFile.length > 0) {
-    videoFileLocalFilePath = req.files.videoFile[0].path;
-  }
-  if (!videoFileLocalFilePath)
-    throw new ApiError(400, "Video File Must be Required");
+  const videoFileLocalFilePath = req.files?.videoFile?.[0]?.path;
+  if (!videoFileLocalFilePath) throw new ApiError(400, "Video File Must be Required");
 
-  // fetch local thumbnail file path
-  let thumbnailLocalFilePath = null;
-  if (req.files && req.files.thumbnail && req.files.thumbnail.length > 0) {
-    thumbnailLocalFilePath = req.files.thumbnail[0].path;
-  }
-  if (!thumbnailLocalFilePath)
-    throw new ApiError(400, "Thumbnail File Must be Required");
+  const thumbnailLocalFilePath = req.files?.thumbnail?.[0]?.path;
+  if (!thumbnailLocalFilePath) throw new ApiError(400, "Thumbnail File Must be Required");
 
-  // check if connection closed then abort operations else continue
-  if (req.customConnectionClosed) {
-    console.log("Connection closed, aborting video and thumbnail upload...");
-    console.log("All resources Cleaned up & request closed...");
-    return; // Preventing further execution
-  }
+  if (req.customConnectionClosed) return abortRequest();
 
+  // Step 1: Upload video to Cloudinary
   const videoFile = await uploadVideoOnCloudinary(videoFileLocalFilePath);
-  if (!videoFile) throw new ApiError(500, "Error while Uploading Video File");
+  if (!videoFile || !videoFile.hlsurl) throw new ApiError(500, "Error while Uploading Video File");
 
-  // check if connection closed then delete video and abort operations else continue
-  if (req.customConnectionClosed) {
-    console.log(
-      "Connection closed!!! deleting video and aborting thumbnail upload..."
-    );
-    await deleteVideoOnCloudinary(videoFile.url);
-    fs.unlinkSync(thumbnailLocalFilePath);
-    console.log("All resources Cleaned up & request closed...");
-    return; // Preventing further execution
-  }
+  // Ensure video duration is available
+  const videoDuration = videoFile.duration;
+  if (!videoDuration) throw new ApiError(500, "Video duration is missing from Cloudinary response");
 
+  // Step 2: Upload thumbnail
   const thumbnailFile = await uploadPhotoOnCloudinary(thumbnailLocalFilePath);
-  if (!thumbnailFile)
-    throw new ApiError(500, "Error while uploading thumbnail file");
+  if (!thumbnailFile) throw new ApiError(500, "Error while uploading thumbnail file");
 
-  // check if connection closed then delete video & thumbnail and abort db operation else continue
-  if (req.customConnectionClosed) {
-    console.log(
-      "Connection closed!!! deleting video & thumbnail and aborting db operation..."
-    );
-    await deleteVideoOnCloudinary(videoFile.url);
-    await deleteImageOnCloudinary(thumbnailFile.url);
-    console.log("All resources Cleaned up & request closed...");
-    return; // Preventing further execution
-  }
+  if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url);
 
-  console.log("updating db...");
-
+  // Step 3: Save the video to the database
   const video = await Video.create({
     videoFile: videoFile.hlsurl,
     title,
-    description: description || "",
-    duration: videoFile.duration,
+    description: description || "No description provided",
+    duration: videoDuration,
     thumbnail: thumbnailFile.url,
     owner: req.user?._id,
   });
 
-  console.log("main video controler", video);
+  if (!video) throw new ApiError(500, "Error while publishing video");
 
-  if (!video) throw new ApiError(500, "Error while Publishing Video");
+  if (req.customConnectionClosed) return await cleanUpAndAbort(videoFile.url, thumbnailFile.url, video._id);
 
-  // check if connection closed then delete video & thumbnail & dbEntry and abort response else continue
-  if (req.customConnectionClosed) {
-    console.log(
-      "Connection closed!!! deleting video & thumbnail & dbEntry and aborting response..."
-    );
-    await deleteVideoOnCloudinary(videoFile.url);
-    await deleteImageOnCloudinary(thumbnailFile.url);
-    let video = await Video.findByIdAndDelete(video._id);
-    console.log("Deleted the Video from db: ", video);
-    console.log("All resources Cleaned up & request closed...");
-    return;
+  return res.status(200).json(new ApiResponse(200, video, "Video published successfully"));
+
+} catch (error) {
+  console.error("Error in publishAVideo controller:", error);
+  
+  // Clean up any uploaded files if an error occurs
+  if (error.cloudinaryPublicId) {
+    await cloudinary.uploader.destroy(error.cloudinaryPublicId);
   }
+  
+  return res.status(error.statusCode || 500).json(
+    new ApiError(error.statusCode || 500, error.message || "An error occurred while publishing the video")
+  );
+}
+});
+
+// const getVideoById = asyncHandler(async (req, res) => {
+//   //TODO: get video by id
+//   //get video
+//   //search in db
+//   //return video details
+
+//   try {
+//     const { videoId } = req.params;
+//     if (!isValidObjectId(videoId)) {
+//       throw new ApiError(400, "Invalid video id");
+//     }
+//     const video = await Video.findById(videoId);
+//     if (!video) {
+//       throw new ApiError(404, "Video not found");
+//     }
+
+//     return res
+//       .status(200)
+//       .json(new ApiResponse(200, video, "video fetched successfully"));
+//   } catch (error) {
+//     console.error("Error in fetching video by id:", error);
+//     throw new ApiError(500, error.message, "Internal server error");
+//   }
+// });
+
+// 2nd Iteration 
+// const getVideoById = asyncHandler(async (req, res) => {
+//   try {
+//     const { videoId } = req.params;
+//     if (!isValidObjectId(videoId)) {
+//       throw new ApiError(400, "Invalid video id");
+//     }
+
+//     const video = await Video.findById(videoId).populate({
+//       path: 'owner',
+//       select: 'username fullName avatar'
+//     });
+
+//     if (!video) {
+//       throw new ApiError(404, "Video not found");
+//     }
+
+//     return res
+//       .status(200)
+//       .json(new ApiResponse(200, video, "Video fetched successfully"));
+//   } catch (error) {
+//     console.error("Error in fetching video by id:", error);
+//     throw new ApiError(500, error.message || "Internal server error");
+//   }
+// });
+
+// 3rd Iteration
+const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+
+  if (!isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video id");
+  }
+
+  const video = await Video.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(videoId),
+        isPublished: true,
+      },
+    },
+    // get all likes array
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "likes",
+        pipeline: [
+          {
+            $match: {
+              liked: true,
+            },
+          },
+          {
+            $group: {
+              _id: "$liked",
+              likeOwners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    // get all dislikes array
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "dislikes",
+        pipeline: [
+          {
+            $match: {
+              liked: false,
+            },
+          },
+          {
+            $group: {
+              _id: "$liked",
+              dislikeOwners: { $push: "$likedBy" },
+            },
+          },
+        ],
+      },
+    },
+    // adjust shapes of likes and dislikes
+    {
+      $addFields: {
+        likes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$likes" }, 0],
+            },
+            then: { $first: "$likes.likeOwners" },
+            else: [],
+          },
+        },
+        dislikes: {
+          $cond: {
+            if: {
+              $gt: [{ $size: "$dislikes" }, 0],
+            },
+            then: { $first: "$dislikes.dislikeOwners" },
+            else: [],
+          },
+        },
+      },
+    },
+    // fetch owner details
+    {
+      $lookup: {
+        from: "users",
+        localField: "owner",
+        foreignField: "_id",
+        as: "owner",
+        pipeline: [
+          {
+            $project: {
+              username: 1,
+              fullName: 1,
+              avatar: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$owner",
+    },
+    // added like fields
+    {
+      $project: {
+        videoFile: 1,
+        title: 1,
+        description: 1,
+        duration: 1,
+        thumbnail: 1,
+        views: 1,
+        owner: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        totalLikes: {
+          $size: "$likes",
+        },
+        totalDisLikes: {
+          $size: "$dislikes",
+        },
+        isLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$likes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+        isDisLiked: {
+          $cond: {
+            if: {
+              $in: [req.user?._id, "$dislikes"],
+            },
+            then: true,
+            else: false,
+          },
+        },
+      },
+    },
+  ]);
+
+  if (!video.length > 0) throw new ApiError(400, "No video found");
 
   return res
     .status(200)
-    .json(new ApiResponse(200, video, "Video published successfully"));
-});
-
-const getVideoById = asyncHandler(async (req, res) => {
-  //TODO: get video by id
-  //get video
-  //search in db
-  //return video details
-
-  try {
-    const { videoId } = req.params;
-    if (!isValidObjectId(videoId)) {
-      throw new ApiError(400, "Invalid video id");
-    }
-    const video = await Video.findById(videoId);
-    if (!video) {
-      throw new ApiError(404, "Video not found");
-    }
-
-    return res
-      .status(200)
-      .json(new ApiResponse(200, video, "video fetched successfully"));
-  } catch (error) {
-    console.error("Error in fetching video by id:", error);
-    throw new ApiError(500, error.message, "Internal server error");
-  }
+    .json(new ApiResponse(200, video[0], "Video sent successfully"));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {

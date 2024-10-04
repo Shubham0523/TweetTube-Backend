@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+    toggleLike,
     getLikedVideos,
     toggleCommentLike,
     toggleVideoLike,
@@ -10,7 +11,7 @@ import {verifyJWT} from "../middlewares/auth.middleware.js"
 const router = Router();
 router.use(verifyJWT);
 
-// router.route("/").patch(toggleLike);
+router.route("/").patch(toggleLike);
 router.route("/comment/:commentId").patch(toggleCommentLike);
 router.route("/tweet/:tweetId").patch(toggleTweetLike);
 router.route("/video/:videoId").patch(toggleVideoLike);

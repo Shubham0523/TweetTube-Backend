@@ -1,141 +1,182 @@
-import mongoose from "mongoose";
-import { User } from "../models/user.model.js";
-import { Video } from "../models/video.model.js";
-import { Subscription } from "../models/subscription.model.js";
-import { Like } from "../models/like.model.js";
-import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { Video } from "../models/video.model.js";
+import { Like } from "../models/like.model.js";
+import { Subscription } from "../models/subscription.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import mongoose from "mongoose";
+
+// TODO: Review and Enhance all controllers
 
 const getChannelStats = asyncHandler(async (req, res) => {
-  // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
+  const channelStats = {};
 
-  //get userId from req.body
-  //aggregate total videos and total views from the user
-  //aggregate the total subscribers
-  //aggregate the total tweets
-  //aggregate the total comments
-  //aggregate total video likes
-  //aggregate total comment likes
-  //return the stats
-
-  //id of the user
-  const userId = req.user?._id;
-
-  const channelStats = await Video.aggregate([
+  const videoStates = await Video.aggregate([
     {
-      // Match videos owned by the user
       $match: {
-        owner: userId,
+        owner: req.user?._id,
       },
     },
-    // Lookup subscribers to the user's channel
+    {
+      $group: {
+        _id: null,
+        totalViews: { $sum: "$views" },
+        totalVideos: { $count: {} },
+      },
+    },
+  ]);
+
+  const subscriber = await Subscription.aggregate([
+    {
+      $match: {
+        channel: req.user?._id,
+      },
+    },
+    {
+      $count: "totalSubscribers",
+    },
+  ]);
+
+  const totalLikes = await Like.aggregate([
+    {
+      $match: {
+        video: { $ne: null },
+        liked: true,
+      },
+    },
     {
       $lookup: {
-        from: "subscriptions",
-        localField: "owner",
-        foreignField: "channel",
-        as: "subscribers",
+        from: "videos",
+        localField: "video",
+        foreignField: "_id",
+        as: "channelVideo",
+        pipeline: [
+          {
+            $match: {
+              owner: req.user?._id,
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+            },
+          },
+        ],
       },
     },
-    // Lookup channels the user has subscribed to
     {
-      $lookup: {
-        from: "subscriptions",
-        localField: "owner",
-        foreignField: "subscriber",
-        as: "subscribedTo",
+      $addFields: {
+        channelVideo: {
+          $first: "$channelVideo",
+        },
       },
     },
-    // Lookup likes on the video
+    {
+      $match: {
+        channelVideo: { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        likeCount: {
+          $sum: 1,
+        },
+      },
+    },
+  ]);
+
+  channelStats.ownerName = req.user?.fullName;
+  channelStats.totalViews = (videoStates && videoStates[0]?.totalViews) || 0;
+  channelStats.totalVideos = (videoStates && videoStates[0]?.totalVideos) || 0;
+  channelStats.totalSubscribers =
+    (subscriber && subscriber[0]?.totalSubscribers) || 0;
+  channelStats.totalLikes = (totalLikes && totalLikes[0]?.likeCount) || 0;
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, channelStats, "Channel states sent successfully")
+    );
+});
+
+const getChannelVideos = asyncHandler(async (req, res) => {
+  const allVideos = await Video.aggregate([
+    {
+      $match: {
+        owner: new mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    // lookup for likes
     {
       $lookup: {
         from: "likes",
         localField: "_id",
         foreignField: "video",
-        as: "likedVideos",
+        as: "likes",
+        pipeline: [
+          {
+            $match: {
+              liked: true,
+            },
+          },
+        ],
       },
     },
-    // Lookup comments on the video
+    // lookup for dislikes
+    {
+      $lookup: {
+        from: "likes",
+        localField: "_id",
+        foreignField: "video",
+        as: "dislikes",
+        pipeline: [
+          {
+            $match: {
+              liked: false,
+            },
+          },
+        ],
+      },
+    },
+    // lookup for comments
     {
       $lookup: {
         from: "comments",
         localField: "_id",
         foreignField: "video",
-        as: "videoComments",
+        as: "comments",
       },
     },
-    // Lookup tweets by the user
-    {
-      $lookup: {
-        from: "tweets",
-        localField: "owner",
-        foreignField: "owner",
-        as: "tweets",
-      },
-    },
-    // Group data to calculate stats
-    {
-      $group: {
-        _id: null,
-        totalVideos: { $sum: 1 },
-        totalViews: { $sum: "$views" },
-        subscribers: { $first: "$subscribers" },
-        subscribedTo: { $first: "$subscribedTo" },
-        totalLikes: { $sum: { $size: "$likedVideos" } },
-        totalComments: { $sum: { $size: "$videoComments" } },
-        totalTweets: { $first: { $size: "$tweets" } },
-      },
-    },
-    // Project the final result
     {
       $project: {
-        _id: 0,
-        totalVideos: 1,
-        totalViews: 1,
-        subscribers: { $size: "$subscribers" },
-        subscribedTo: { $size: "$subscribedTo" },
-        totalLikes: 1,
-        totalComments: 1,
-        totalTweets: 1,
+        title: 1,
+        thumbnail: 1,
+        isPublished: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        description: 1,
+        views: 1,
+        likesCount: {
+          $size: "$likes",
+        },
+        dislikesCount: {
+          $size: "$dislikes",
+        },
+        commentsCount: {
+          $size: "$comments",
+        },
       },
     },
   ]);
 
   return res
     .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        channelStats[0],
-        "Channel stats fetched successfully"
-      )
-    );
-});
-
-const getChannelVideos = asyncHandler(async (req, res) => {
-  // TODO: Get all the videos uploaded by the channel
-
-  //get the channel id from the request params
-  //get the channel details from the request body
-  //get all the videos uploaded by the channel
-  //return the videos
-
-  const userId = req.user?._id;
-
-  if (!userId) {
-    throw new ApiError(404, "User Not Found");
-  }
-
-  const videos = await Video.find({ owner: userId });
-
-  if (!videos[0]) {
-    200, [], "No videos found";
-  }
-
-  return res
-    .status(200)
-    .json(new ApiResponse(200, videos, "Channel videos fetched successfully"));
+    .json(new ApiResponse(200, allVideos, "All videos fetched successfully"));
 });
 
 export { getChannelStats, getChannelVideos };

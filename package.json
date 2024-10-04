@@ -10,8 +10,10 @@
   "author": "Shubham Arora",
   "license": "ISC",
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/cookie-parser": "^1.4.7",
     "@types/cors": "^2.8.17",
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/morgan": "^1.9.9",
     "nodemon": "^3.1.4",
     "prettier": "^3.3.3"
