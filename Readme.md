@@ -1,6 +1,6 @@
-# Advance-Video-Platform-Backend
+# TweetTube Backend
 
-This project is a backend implementation of a YouTube-like application, developed as a learning exercise for advanced backend concepts.
+This project is a backend implementation of a YouTube+Twitter-like application, developed as a learning exercise for advanced backend concepts.
 
 ## Learning Outcomes
 
@@ -34,6 +34,13 @@ Following his instruction, I was tasked with independently developing all other 
 - Video Controller
 
 Writing all these controllers significantly enhanced my understanding of backend development.
+
+## 🌐 Important Links
+
+| 📄 Content               | 🔗 Link                                                                 |
+| -------------------------|------------------------------------------------------------------------|
+| 🔴 Live Link             | [click here](https://tweet-tube-frontend.vercel.app/)                          |
+| 📈 Model                 | [click here](https://app.eraser.io/workspace/cATefMPkrAdzR9c6teox?origin=share) |
 
 ## Technologies Used
 
