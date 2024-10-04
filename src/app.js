@@ -6,7 +6,7 @@ import morgan from 'morgan';
 const app = express();
 
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173", "https://tweet-tube-frontend.vercel.app/"],
     credentials: true,
 }))
 
