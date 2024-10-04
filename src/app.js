@@ -6,8 +6,10 @@ import morgan from 'morgan';
 const app = express();
 
 app.use(cors({
-    origin: ["http://localhost:5173", "https://tweet-tube-frontend.vercel.app/"],
+    origin: ["https://tweet-tube-frontend.vercel.app", "http://localhost:5173"], 
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }))
 
 app.use(express.json({limit: "16kb"}))
